@@ -43,8 +43,7 @@ namespace LetsEncrypt.ACME.Simple
                 .CreateLogger();
             Log.Information("The global logger has been configured");
 
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 |
-                                                   SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
             var commandLineParseResult = Parser.Default.ParseArguments<Options>(args);
             var parsed = commandLineParseResult as Parsed<Options>;
@@ -562,7 +561,7 @@ namespace LetsEncrypt.ACME.Simple
                 {
                     var subjectName = cert.Subject.Split(',');
 
-                    if (cert.FriendlyName != certificate.FriendlyName && subjectName[1] == " CN=" + host)
+                    if (cert.FriendlyName != certificate.FriendlyName && subjectName[0] == "CN=" + host)
                     {
                         Console.WriteLine($" Removing Certificate from Store {cert.FriendlyName}");
                         Log.Information("Removing Certificate from Store {@cert}", cert);
@@ -665,6 +664,7 @@ namespace LetsEncrypt.ACME.Simple
                 var csrPemFile = Path.Combine(_certificatePath, $"{dnsIdentifier}-csr.pem");
                 var crtDerFile = Path.Combine(_certificatePath, $"{dnsIdentifier}-crt.der");
                 var crtPemFile = Path.Combine(_certificatePath, $"{dnsIdentifier}-crt.pem");
+                var chainPemFile = Path.Combine(_certificatePath, $"{dnsIdentifier}-chain.pem");
                 string crtPfxFile = null;
                 if (!CentralSsl)
                 {
@@ -699,6 +699,14 @@ namespace LetsEncrypt.ACME.Simple
 
                 // To generate a PKCS#12 (.PFX) file, we need the issuer's public certificate
                 var isuPemFile = GetIssuerCertificate(certRequ, cp);
+
+                using (FileStream intermediate = new FileStream(isuPemFile, FileMode.Open),
+                    certificate = new FileStream(crtPemFile, FileMode.Open),
+                    chain = new FileStream(chainPemFile, FileMode.Create))
+                {
+                    certificate.CopyTo(chain);
+                    intermediate.CopyTo(chain);
+                }
 
                 Log.Debug("CentralSsl {CentralSsl} San {San}", CentralSsl.ToString(), Options.San.ToString());
 
