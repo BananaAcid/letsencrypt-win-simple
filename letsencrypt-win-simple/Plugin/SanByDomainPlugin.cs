@@ -105,45 +105,55 @@ namespace LetsEncrypt.ACME.Simple
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("Enter Id of domain to make SAN");
+                Console.WriteLine("Enter Id (or comma seperated Ids) of domain/s to make SAN");
                 var domainInput = Console.ReadLine();
                 int domId = -1;
+                List<Target> siteList = new List<Target>();
+                List<string> altList = new List<string>();
+
                 try
                 {
-                    domId = Convert.ToInt32(domainInput);
 
-                    var selecteddomain = domains.FirstOrDefault(o => o.DomainId == domId);
-                    if (selecteddomain != null)
+                    foreach (string domIdStr in domainInput.Split(','))
                     {
-                        var sanDomains = domains.Where(o => o.DomainName == selecteddomain.DomainName).OrderBy(o => o.IsDomain == false).ThenBy(o => o.Host).ToList();
+                        domId = Convert.ToInt32(domIdStr);
 
-                        if (sanDomains.Count > Program.SanMax)
+                        var selecteddomain = domains.FirstOrDefault(o => o.DomainId == domId);
+                        if (selecteddomain != null)
                         {
-                            Console.WriteLine($" You have too many hosts for a SAN certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
-                            Log.Error("You have too many hosts for a San certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
+                            var sanDomains = domains.Where(o => o.DomainName == selecteddomain.DomainName).OrderBy(o => o.IsDomain == false).ThenBy(o => o.Host).ToList();
+
+                            if (sanDomains.Count > Program.SanMax)
+                            {
+                                Console.WriteLine($" You have too many hosts for a SAN certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
+                                Log.Error("You have too many hosts for a San certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
+                            }
+                            else
+                            {
+
+                                foreach (var item in sanDomains.OrderBy(o => o.IsDomain == false).ThenBy(o => o.Host))
+                                {
+                                    Target target = new Target();
+                                    target.Host = item.Host;
+                                    target.WebRootPath = item.WebRootPath;
+                                    target.SiteId = item.SiteId;
+                                    siteList.Add(target);
+                                }
+
+                            }
                         }
                         else
                         {
-                            List<Target> siteList = new List<Target>();
-                            List<string> altList = new List<string>();
-
-                            foreach (var item in sanDomains.OrderBy(o => o.IsDomain == false).ThenBy(o => o.Host))
-                            {
-                                Target target = new Target();
-                                target.Host = item.Host;
-                                target.WebRootPath = item.WebRootPath;
-                                target.SiteId = item.SiteId;
-                                siteList.Add(target);
-                            }
-
-                            Target totalTarget = CreateTarget(siteList);
-                            IISSiteServerPlugin.ProcessTotaltarget(totalTarget, siteList);
+                            Console.WriteLine("Invalid Id...");
                         }
                     }
-                    else
+
+                    if (siteList.Count > 0)
                     {
-                        Console.WriteLine("Invalid Id...");
+                        Target totalTarget = CreateTarget(siteList);
+                        IISSiteServerPlugin.ProcessTotaltarget(totalTarget, siteList);
                     }
+
                 }
                 catch (Exception ex)
                 {
@@ -152,6 +162,7 @@ namespace LetsEncrypt.ACME.Simple
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
+            
             }
         }
 
