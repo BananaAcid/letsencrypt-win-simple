@@ -1,5 +1,12 @@
 # letsencrypt-win-simple
-A Simple ACME Client for Windows
+A Simple ACME Client for Windows + modifications
+
+# Notable changes
+
+Difference to creators branch:
+- Added several plugins suggested to be used in master branch
+- modified SAN plugin to take a comma seperated list of multiple targets (first one will be the main target which will work if SAN is not supported by client)
+
 
 # Overview
 
