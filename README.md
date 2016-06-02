@@ -5,7 +5,15 @@ A Simple ACME Client for Windows + modifications
 
 Difference to creators branch:
 - Added several plugins suggested to be used in master branch
-- modified SAN plugin to take a comma seperated list of multiple targets (first one will be the main target which will work if SAN is not supported by client)
+- modified SAN plugin to take a comma seperated list of multiple targets (first one will be the main target which will work if SAN is not supported by client) 
+
+# What is SAN
+
+One Certificate for hosting multiple domain names on a single IP address
+
+# NOTE:
+
+Sometimes, the default web.config will case problems. Use the included alternative (or remove it).
 
 
 # Overview

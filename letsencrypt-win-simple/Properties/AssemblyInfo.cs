@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 
 [assembly: AssemblyTitle("Let's Encrypt Simple Windows Client")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Let’s Encrypt is a new Certificate Authority: It’s free, automated, and open.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Let's Encrypt")]
 [assembly: AssemblyProduct("LetsEncrypt.ACME.CLI")]
