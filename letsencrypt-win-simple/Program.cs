@@ -1059,9 +1059,10 @@ namespace LetsEncrypt.ACME.Simple
                     
                     if (Options.Wait)
                     {
-                        Console.WriteLine($"Press Enter to continue . . .");
-                        Console.ReadLine().ToLowerInvariant();
+                        Console.WriteLine("Press Enter to continue . . .");
+                        Console.ReadLine();
                     }
+
                     target.Plugin.BeforeAuthorize(target, answerPath, httpChallenge.Token);
 
                     var answerUri = new Uri(httpChallenge.FileUrl);
