@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -175,12 +176,12 @@ namespace LetsEncrypt.ACME.Simple
                             Console.Write("Enter an email address (not public, used for renewal fail notices): ");
                             var email = Console.ReadLine().Trim();
 
-                            var contacts = new string[] {};
+                            var contacts = new string[] { };
                             if (!String.IsNullOrEmpty(email))
                             {
                                 Log.Debug("Registration email: {email}", email);
                                 email = "mailto:" + email;
-                                contacts = new string[] {email};
+                                contacts = new string[] { email };
                             }
 
                             Console.WriteLine("Calling Register");
@@ -218,173 +219,60 @@ namespace LetsEncrypt.ACME.Simple
 #endif
                             return;
                         }
-                        var targets = new List<Target>();
-                        if (!Options.San)
+
+                        bool loopInput = false;
+                        do
                         {
+                            var targets = showList();
+
+                            Console.WriteLine();
                             foreach (var plugin in Target.Plugins.Values)
                             {
                                 if (string.IsNullOrEmpty(Options.ManualHost))
                                 {
-                                    targets.AddRange(plugin.GetTargets());
+                                    plugin.PrintMenu();
+                                }
+                                else if (plugin.Name == "Manual")
+                                {
+                                    plugin.PrintMenu();
                                 }
                             }
-                        }
-                        else
-                        {
-                            foreach (var plugin in Target.Plugins.Values)
-                            {
-                                if (string.IsNullOrEmpty(Options.ManualHost))
-                                {
-                                    targets.AddRange(plugin.GetSites());
-                                }
-                            }
-                        }
-
-                        if (targets.Count == 0 && string.IsNullOrEmpty(Options.ManualHost))
-                        {
-                            Console.WriteLine("No targets found.");
-                            Log.Error("No targets found.");
-                        }
-                        else
-                        {
-                            int hostsPerPage = Console.WindowHeight; // used to be 50
-                            try
-                            {
-                                hostsPerPage = Properties.Settings.Default.HostsPerPage;
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error("Error getting HostsPerPage setting, setting to default value. Error: {@ex}",
-                                    ex);
-                            }
-                            var count = 1;
-                            if (targets.Count > hostsPerPage)
-                            {
-                                do
-                                {
-                                    if ((count + hostsPerPage) <= targets.Count)
-                                    {
-                                        int stop = count + hostsPerPage;
-                                        for (int i = count; i < stop; i++)
-                                        {
-                                            if (!Options.San)
-                                            {
-                                                Console.WriteLine($" {count}: {targets[count - 1]}");
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine($" {targets[count - 1].SiteId}: SAN - {targets[count - 1]}");
-                                            }
-                                            count++;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (int i = count; i <= targets.Count; i++)
-                                        {
-                                            if (!Options.San)
-                                            {
-                                                Console.WriteLine($" {count}: {targets[count - 1]}");
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine(
-                                                    $" {targets[count - 1].SiteId}: SAN - {targets[count - 1]}");
-                                            }
-                                            count++;
-                                        }
-                                    }
-
-                                    if (count < targets.Count)
-                                    {
-                                        Console.WriteLine(" Q: Quit");
-                                        Console.Write("Press enter to continue to next page ");
-                                        var continueResponse = Console.ReadLine().ToLowerInvariant();
-                                        switch (continueResponse)
-                                        {
-                                            case "q":
-                                                throw new Exception($"Requested to quit application");
-                                            default:
-                                                break;
-                                        }
-                                    }
-                                } while (count < targets.Count);
-                            }
-                            else
-                            {
-                                foreach (var binding in targets)
-                                {
-                                    if (!Options.San)
-                                    {
-                                        Console.WriteLine($" {count}: {binding}");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($" {binding.SiteId}: SAN - {binding}");
-                                    }
-                                    count++;
-                                }
-                            }
-                        }
-
-                        Console.WriteLine();
-                        foreach (var plugin in Target.Plugins.Values)
-                        {
                             if (string.IsNullOrEmpty(Options.ManualHost))
                             {
-                                plugin.PrintMenu();
-                            }
-                            else if (plugin.Name == "Manual")
-                            {
-                                plugin.PrintMenu();
-                            }
-                        }
-                        if (string.IsNullOrEmpty(Options.ManualHost))
-                        {
-                            Console.WriteLine(" A: Get certificates for all hosts");
-                            Console.WriteLine(" Q: Quit");
-                            if (!Options.San)
-                            {
-                                Console.WriteLine(" You can also enter the number for a specific host from the list.");
-                                Console.WriteLine(" Enter more numbers seperated by comma to get certificates for several hosts.");
-                            }
-                            Console.WriteLine("\n Which action do you want to perform: ");
-                            var response = Console.ReadLine().ToLowerInvariant();
-                            switch (response)
-                            {
-                                case "a":
-                                    foreach (var target in targets)
-                                    {
-                                        target.Plugin.Auto(target);
-                                    }
-                                    break;
-                                case "q":
-                                    return;
-                                default:
-                                    var targetId = 0;
-                                    if (Int32.TryParse(response, out targetId))
-                                    {
-                                        if (!Options.San)
+                                Console.WriteLine(" A: Get certificates for all hosts");
+                                Console.WriteLine(" Q: Quit");
+                                if (!Options.San)
+                                {
+                                    Console.WriteLine(" MS: Activate SAN mode");
+                                    Console.WriteLine(" You can also enter the number for a specific host from the list.");
+                                    Console.WriteLine(" Enter more numbers seperated by comma to get certificates for several hosts.");
+                                }
+                                else
+                                {
+                                    Console.WriteLine(" MS: Deactivate SAN mode");
+                                }
+                                Console.WriteLine($" You may use '{Process.GetCurrentProcess().ProcessName}.exe --help' to list commandline switches");
+                                Console.Write("\n Which action do you want to perform: ");
+                                var response = Console.ReadLine().ToLowerInvariant();
+                                switch (response)
+                                {
+                                    case "a":
+                                        foreach (var target in targets)
                                         {
-                                            targetId--;
-                                            if (targetId >= 0 && targetId < targets.Count)
-                                            {
-                                                var binding = targets[targetId];
-                                                binding.Plugin.Auto(binding);
-                                            }
+                                            target.Plugin.Auto(target);
                                         }
-                                        else
+                                        break;
+                                    case "q":
+                                        return;
+                                    case "ms":
+                                        Options.San = !Options.San;
+                                        loopInput = true;
+                                        break;
+                                    default:
+                                        var targetId = 0;
+                                        if (Int32.TryParse(response, out targetId))
                                         {
-                                            var binding = targets.Where(t => t.SiteId == targetId).First();
-                                            binding.Plugin.Auto(binding);
-                                        }
-                                    }
-                                    else if (response.IndexOf(',') > -1 && !Options.San)
-                                    {
-                                        var split = response.Split(',');
-                                        foreach (string item in split)
-                                        {
-                                            if (Int32.TryParse(item.Trim(), out targetId))
+                                            if (!Options.San)
                                             {
                                                 targetId--;
                                                 if (targetId >= 0 && targetId < targets.Count)
@@ -393,18 +281,39 @@ namespace LetsEncrypt.ACME.Simple
                                                     binding.Plugin.Auto(binding);
                                                 }
                                             }
+                                            else
+                                            {
+                                                var binding = targets.Where(t => t.SiteId == targetId).First();
+                                                binding.Plugin.Auto(binding);
+                                            }
                                         }
-                                    }
-                                    else
-                                    {
-                                        foreach (var plugin in Target.Plugins.Values)
+                                        else if (response.IndexOf(',') > -1 && !Options.San)
                                         {
-                                            plugin.HandleMenuResponse(response, targets);
+                                            var split = response.Split(',');
+                                            foreach (string item in split)
+                                            {
+                                                if (Int32.TryParse(item.Trim(), out targetId))
+                                                {
+                                                    targetId--;
+                                                    if (targetId >= 0 && targetId < targets.Count)
+                                                    {
+                                                        var binding = targets[targetId];
+                                                        binding.Plugin.Auto(binding);
+                                                    }
+                                                }
+                                            }
                                         }
-                                    }
-                                    break;
+                                        else
+                                        {
+                                            foreach (var plugin in Target.Plugins.Values)
+                                            {
+                                                plugin.HandleMenuResponse(response, targets);
+                                            }
+                                        }
+                                        break;
+                                }
                             }
-                        }
+                        } while (loopInput);
                     }
                 }
             }
@@ -428,6 +337,120 @@ namespace LetsEncrypt.ACME.Simple
 
             Console.WriteLine("Press enter to continue.");
             Console.ReadLine();
+        }
+
+        private static List<Target> showList()
+        {
+            var targets = new List<Target>();
+            if (!Options.San)
+            {
+                foreach (var plugin in Target.Plugins.Values)
+                {
+                    if (string.IsNullOrEmpty(Options.ManualHost))
+                    {
+                        targets.AddRange(plugin.GetTargets());
+                    }
+                }
+            }
+            else
+            {
+                foreach (var plugin in Target.Plugins.Values)
+                {
+                    if (string.IsNullOrEmpty(Options.ManualHost))
+                    {
+                        targets.AddRange(plugin.GetSites());
+                    }
+                }
+            }
+
+            if (targets.Count == 0 && string.IsNullOrEmpty(Options.ManualHost))
+            {
+                Console.WriteLine("No targets found.");
+                Log.Error("No targets found.");
+            }
+            else
+            {
+                int hostsPerPage = Console.WindowHeight; // used to be 50
+                try
+                {
+                    hostsPerPage = Properties.Settings.Default.HostsPerPage;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Error getting HostsPerPage setting, setting to default value. Error: {@ex}",
+                        ex);
+                }
+                var count = 1;
+                if (targets.Count > hostsPerPage)
+                {
+                    do
+                    {
+                        if ((count + hostsPerPage) <= targets.Count)
+                        {
+                            int stop = count + hostsPerPage;
+                            for (int i = count; i < stop; i++)
+                            {
+                                if (!Options.San)
+                                {
+                                    Console.WriteLine($" {count}: {targets[count - 1]}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($" {targets[count - 1].SiteId}: SAN - {targets[count - 1]}");
+                                }
+                                count++;
+                            }
+                        }
+                        else
+                        {
+                            for (int i = count; i <= targets.Count; i++)
+                            {
+                                if (!Options.San)
+                                {
+                                    Console.WriteLine($" {count}: {targets[count - 1]}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine(
+                                        $" {targets[count - 1].SiteId}: SAN - {targets[count - 1]}");
+                                }
+                                count++;
+                            }
+                        }
+
+                        if (count < targets.Count)
+                        {
+                            Console.WriteLine(" Q: Quit");
+                            Console.Write("Press enter to continue to next page ");
+                            var continueResponse = Console.ReadLine().ToLowerInvariant();
+                            switch (continueResponse)
+                            {
+                                case "q":
+                                    throw new Exception($"Requested to quit application");
+                                default:
+                                    break;
+                            }
+                        }
+                    } while (count < targets.Count);
+                }
+                else
+                {
+                    foreach (var binding in targets)
+                    {
+                        if (!Options.San)
+                        {
+                            Console.WriteLine($" {count}: {binding}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($" {binding.SiteId}: SAN - {binding}");
+                        }
+                        count++;
+                    }
+                }
+            }
+
+            return targets;
         }
 
         private static string CleanFileName(string fileName)
