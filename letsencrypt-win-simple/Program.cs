@@ -1056,6 +1056,12 @@ namespace LetsEncrypt.ACME.Simple
                     }
 
                     target.Plugin.CreateAuthorizationFile(answerPath, httpChallenge.FileContent);
+                    
+                    if (Options.Wait)
+                    {
+                        Console.WriteLine($"Press Enter to continue . . .");
+                        Console.ReadLine().ToLowerInvariant();
+                    }
                     target.Plugin.BeforeAuthorize(target, answerPath, httpChallenge.Token);
 
                     var answerUri = new Uri(httpChallenge.FileUrl);
