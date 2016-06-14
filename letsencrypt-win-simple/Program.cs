@@ -26,7 +26,7 @@ namespace LetsEncrypt.ACME.Simple
         public static string _certificateStore = "WebHosting";
         public static float RenewalPeriod = 60;
         public static bool CentralSsl = false;
-        public const int SanMax = 100;
+        public const int SanMax = 100;  // https://community.letsencrypt.org/t/subjectaltname-certificates/100/9
         public static string BaseUri { get; set; }
         private static string _configPath;
         private static string _certificatePath;

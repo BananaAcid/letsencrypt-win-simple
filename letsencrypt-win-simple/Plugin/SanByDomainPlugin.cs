@@ -123,7 +123,7 @@ namespace LetsEncrypt.ACME.Simple
                         {
                             var sanDomains = domains.Where(o => o.DomainName == selecteddomain.DomainName).OrderBy(o => o.IsDomain == false).ThenBy(o => o.Host).ToList();
 
-                            if (sanDomains.Count > Program.SanMax)
+                            if (siteList.Count + sanDomains.Count > Program.SanMax)
                             {
                                 Console.WriteLine($" You have too many hosts for a SAN certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
                                 Log.Error("You have too many hosts for a San certificate. Let's Encrypt currently has a maximum of " + Program.SanMax + " alternative names per certificate.");
