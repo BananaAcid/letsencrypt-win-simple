@@ -247,7 +247,7 @@ namespace LetsEncrypt.ACME.Simple
                         }
                         else
                         {
-                            int hostsPerPage = 50;
+                            int hostsPerPage = Console.WindowHeight; // used to be 50
                             try
                             {
                                 hostsPerPage = Properties.Settings.Default.HostsPerPage;
